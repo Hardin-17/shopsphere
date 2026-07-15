@@ -1,11 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
 export default function SearchBar({ onSearch, initialValue = "" }) {
   const [term, setTerm] = useState(initialValue);
+  const isFirstRender = useRef(true);
 
-  // debounce: fire onSearch 400ms after typing stops
+  // debounce: fire onSearch 400ms after typing stops — but not on mount,
+  // otherwise every page load would fire a search for "" and redirect away
+  // from whatever page (e.g. the home page) the person actually landed on.
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const handle = setTimeout(() => {
       onSearch(term.trim());
     }, 400);
