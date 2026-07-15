@@ -16,7 +16,7 @@ export default function Footer() {
           <Link to="/wishlist" className="hover:text-coral transition-colors">Wishlist</Link>
         </nav>
 
-        <p></p>
+        <p>Built with React, Tailwind CSS &amp; DummyJSON.</p>
       </div>
     </footer>
   );

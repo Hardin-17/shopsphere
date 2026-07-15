@@ -1,7 +1,39 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserPlus, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import {
+  validateName,
+  validateUsername,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword,
+} from "../utils/validation";
+
+const inputClass = (hasError) =>
+  `w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 transition-colors ${
+    hasError
+      ? "border-coral focus:ring-coral/40"
+      : "border-ink/15 dark:border-paper/20 focus:ring-coral/50"
+  }`;
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1 text-xs text-coral mt-1.5">
+      <AlertCircle size={12} /> {message}
+    </p>
+  );
+}
+
+const emptyErrors = {
+  firstName: "",
+  lastName: "",
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
 
 export default function SignUp() {
   const { user, signup, loading, error, initializing } = useAuth();
@@ -21,17 +53,74 @@ export default function SignUp() {
     confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [mismatch, setMismatch] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState(emptyErrors);
+  const [touched, setTouched] = useState({});
 
-  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const validateField = (field, value, currentForm = form) => {
+    switch (field) {
+      case "firstName":
+        return validateName(value, "First name");
+      case "lastName":
+        return validateName(value, "Last name");
+      case "username":
+        return validateUsername(value);
+      case "email":
+        return validateEmail(value);
+      case "password":
+        return validatePassword(value);
+      case "confirmPassword":
+        return validateConfirmPassword(currentForm.password, value);
+      default:
+        return "";
+    }
+  };
+
+  const update = (field) => (e) => {
+    const value = e.target.value;
+    const nextForm = { ...form, [field]: value };
+    setForm(nextForm);
+
+    if (touched[field]) {
+      setFieldErrors((errs) => ({ ...errs, [field]: validateField(field, value, nextForm) }));
+    }
+    // re-check confirm password live if the password field itself changes
+    if (field === "password" && touched.confirmPassword) {
+      setFieldErrors((errs) => ({
+        ...errs,
+        confirmPassword: validateConfirmPassword(value, nextForm.confirmPassword),
+      }));
+    }
+  };
+
+  const handleBlur = (field) => () => {
+    setTouched((t) => ({ ...t, [field]: true }));
+    setFieldErrors((errs) => ({ ...errs, [field]: validateField(field, form[field]) }));
+  };
+
+  const validateAll = () => {
+    const errs = {
+      firstName: validateName(form.firstName, "First name"),
+      lastName: validateName(form.lastName, "Last name"),
+      username: validateUsername(form.username),
+      email: validateEmail(form.email),
+      password: validatePassword(form.password),
+      confirmPassword: validateConfirmPassword(form.password, form.confirmPassword),
+    };
+    setFieldErrors(errs);
+    setTouched({
+      firstName: true,
+      lastName: true,
+      username: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+    });
+    return !Object.values(errs).some(Boolean);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
-      setMismatch(true);
-      return;
-    }
-    setMismatch(false);
+    if (!validateAll()) return;
     const success = await signup(form);
     if (success) navigate("/", { replace: true });
   };
@@ -48,7 +137,7 @@ export default function SignUp() {
         <p className="text-slate mt-1.5">Join ShopSphere to save carts and wishlists.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="firstName" className="block text-sm font-medium text-ink dark:text-paper mb-1.5">
@@ -59,10 +148,12 @@ export default function SignUp() {
               type="text"
               value={form.firstName}
               onChange={update("firstName")}
-              required
+              onBlur={handleBlur("firstName")}
               autoComplete="given-name"
-              className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+              aria-invalid={!!fieldErrors.firstName}
+              className={inputClass(!!fieldErrors.firstName)}
             />
+            <FieldError message={fieldErrors.firstName} />
           </div>
           <div>
             <label htmlFor="lastName" className="block text-sm font-medium text-ink dark:text-paper mb-1.5">
@@ -73,10 +164,12 @@ export default function SignUp() {
               type="text"
               value={form.lastName}
               onChange={update("lastName")}
-              required
+              onBlur={handleBlur("lastName")}
               autoComplete="family-name"
-              className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+              aria-invalid={!!fieldErrors.lastName}
+              className={inputClass(!!fieldErrors.lastName)}
             />
+            <FieldError message={fieldErrors.lastName} />
           </div>
         </div>
 
@@ -89,10 +182,12 @@ export default function SignUp() {
             type="text"
             value={form.username}
             onChange={update("username")}
-            required
+            onBlur={handleBlur("username")}
             autoComplete="username"
-            className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+            aria-invalid={!!fieldErrors.username}
+            className={inputClass(!!fieldErrors.username)}
           />
+          <FieldError message={fieldErrors.username} />
         </div>
 
         <div>
@@ -104,10 +199,12 @@ export default function SignUp() {
             type="email"
             value={form.email}
             onChange={update("email")}
-            required
+            onBlur={handleBlur("email")}
             autoComplete="email"
-            className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+            aria-invalid={!!fieldErrors.email}
+            className={inputClass(!!fieldErrors.email)}
           />
+          <FieldError message={fieldErrors.email} />
         </div>
 
         <div>
@@ -120,10 +217,10 @@ export default function SignUp() {
               type={showPassword ? "text" : "password"}
               value={form.password}
               onChange={update("password")}
-              required
-              minLength={6}
+              onBlur={handleBlur("password")}
               autoComplete="new-password"
-              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+              aria-invalid={!!fieldErrors.password}
+              className={`${inputClass(!!fieldErrors.password)} pr-10`}
             />
             <button
               type="button"
@@ -134,6 +231,10 @@ export default function SignUp() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          <FieldError message={fieldErrors.password} />
+          {!fieldErrors.password && (
+            <p className="text-xs text-slate mt-1.5">At least 6 characters.</p>
+          )}
         </div>
 
         <div>
@@ -145,15 +246,14 @@ export default function SignUp() {
             type={showPassword ? "text" : "password"}
             value={form.confirmPassword}
             onChange={update("confirmPassword")}
-            required
+            onBlur={handleBlur("confirmPassword")}
             autoComplete="new-password"
-            className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+            aria-invalid={!!fieldErrors.confirmPassword}
+            className={inputClass(!!fieldErrors.confirmPassword)}
           />
+          <FieldError message={fieldErrors.confirmPassword} />
         </div>
 
-        {mismatch && (
-          <p className="text-sm text-coral bg-coral/10 rounded-lg px-3 py-2">Passwords don't match.</p>
-        )}
         {error && (
           <p className="text-sm text-coral bg-coral/10 rounded-lg px-3 py-2">{error}</p>
         )}

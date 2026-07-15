@@ -3,7 +3,7 @@ import { Mail, MapPin, Phone, Send, CheckCircle2 } from "lucide-react";
 
 const contactDetails = [
   { icon: Mail, label: "support@shopsphere.example" },
-  { icon: Phone, label: "+91  1210102024" },
+  { icon: Phone, label: "+1 (555) 010-2024" },
   { icon: MapPin, label: "Remote-first, shipping worldwide" },
 ];
 

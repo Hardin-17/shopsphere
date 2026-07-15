@@ -1,7 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { validateUsername, validateLoginPassword } from "../utils/validation";
+
+const inputClass = (hasError) =>
+  `w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-ink-soft text-ink dark:text-paper placeholder:text-slate/60 text-sm focus:outline-none focus:ring-2 transition-colors ${
+    hasError
+      ? "border-coral focus:ring-coral/40"
+      : "border-ink/15 dark:border-paper/20 focus:ring-coral/50"
+  }`;
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1 text-xs text-coral mt-1.5">
+      <AlertCircle size={12} /> {message}
+    </p>
+  );
+}
 
 export default function SignIn() {
   const { user, login, loading, error, initializing } = useAuth();
@@ -17,9 +34,33 @@ export default function SignIn() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ username: "", password: "" });
+  const [touched, setTouched] = useState({ username: false, password: false });
+
+  const validateField = (field, value) => {
+    if (field === "username") return validateUsername(value);
+    if (field === "password") return validateLoginPassword(value);
+    return "";
+  };
+
+  const handleBlur = (field, value) => {
+    setTouched((t) => ({ ...t, [field]: true }));
+    setFieldErrors((errs) => ({ ...errs, [field]: validateField(field, value) }));
+  };
+
+  const validateAll = () => {
+    const errs = {
+      username: validateUsername(username),
+      password: validateLoginPassword(password),
+    };
+    setFieldErrors(errs);
+    setTouched({ username: true, password: true });
+    return !Object.values(errs).some(Boolean);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateAll()) return;
     const success = await login({ username, password });
     if (success) navigate(redirectTo, { replace: true });
   };
@@ -27,6 +68,7 @@ export default function SignIn() {
   const fillDemoCredentials = () => {
     setUsername("emilys");
     setPassword("emilyspass");
+    setFieldErrors({ username: "", password: "" });
   };
 
   return (
@@ -45,7 +87,7 @@ export default function SignIn() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-ink dark:text-paper mb-1.5">
             Username
@@ -54,12 +96,19 @@ export default function SignIn() {
             id="username"
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
+            onChange={(e) => {
+              setUsername(e.target.value);
+              if (touched.username) {
+                setFieldErrors((errs) => ({ ...errs, username: validateUsername(e.target.value) }));
+              }
+            }}
+            onBlur={(e) => handleBlur("username", e.target.value)}
             autoComplete="username"
             placeholder="emilys"
-            className="w-full px-4 py-2.5 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper placeholder:text-slate/60 text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+            aria-invalid={!!fieldErrors.username}
+            className={inputClass(!!fieldErrors.username)}
           />
+          <FieldError message={fieldErrors.username} />
         </div>
 
         <div>
@@ -71,11 +120,17 @@ export default function SignIn() {
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (touched.password) {
+                  setFieldErrors((errs) => ({ ...errs, password: validateLoginPassword(e.target.value) }));
+                }
+              }}
+              onBlur={(e) => handleBlur("password", e.target.value)}
               autoComplete="current-password"
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 pr-10 rounded-xl border border-ink/15 dark:border-paper/20 bg-white dark:bg-ink-soft text-ink dark:text-paper placeholder:text-slate/60 text-sm focus:outline-none focus:ring-2 focus:ring-coral/50"
+              aria-invalid={!!fieldErrors.password}
+              className={`${inputClass(!!fieldErrors.password)} pr-10`}
             />
             <button
               type="button"
@@ -86,6 +141,7 @@ export default function SignIn() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          <FieldError message={fieldErrors.password} />
         </div>
 
         {error && (
