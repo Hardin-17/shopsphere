@@ -1,0 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-ink: #14171f;
+  --color-ink-soft: #1f2330;
+  --color-paper: #f7f5f0;
+  --color-paper-dim: #ece8df;
+  --color-coral: #ff6b4a;
+  --color-coral-dark: #e5502f;
+  --color-sage: #8fa998;
+  --color-gold: #e8b854;
+  --color-slate: #5b6472;
+
+  --font-display: "Fraunces", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-data {
+  font-family: var(--font-mono);
+}
+
+/* signature "orbit" ring used as a recurring motif on badges/avatars/loaders */
+.orbit-ring {
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+  position: relative;
+}
+
+.orbit-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 1px dashed currentColor;
+  opacity: 0.35;
+}
+
+/* skeleton shimmer for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #ece8df 0%, #f7f5f0 50%, #ece8df 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-paper-dim);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate);
+  border-radius: 9999px;
+}
